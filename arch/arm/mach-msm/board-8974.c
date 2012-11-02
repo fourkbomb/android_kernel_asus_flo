@@ -257,6 +257,13 @@ static struct reserve_info msm_8974_reserve_info __initdata = {
 	.paddr_to_memtype = msm_8974_paddr_to_memtype,
 };
 
+void __init msm_8974_reserve(void)
+{
+	reserve_info = &msm_8974_reserve_info;
+	of_scan_flat_dt(dt_scan_for_memory_reserve, msm_8974_reserve_table);
+	msm_reserve();
+}
+
 static void __init msm_8974_early_memory(void)
 {
 	reserve_info = &msm_8974_reserve_info;
