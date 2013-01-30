@@ -429,6 +429,7 @@ struct msm_otg {
 	bool debug_aca_enabled;
 	bool aca_id_turned_on;
 
+	struct delayed_work acok_irq_work;
 };
 
 struct msm_hsic_host_platform_data {
