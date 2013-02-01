@@ -430,6 +430,7 @@ struct msm_otg {
 	bool aca_id_turned_on;
 
 	struct delayed_work acok_irq_work;
+	struct delayed_work id_pin_irq_work;
 };
 
 struct msm_hsic_host_platform_data {
