@@ -238,4 +238,10 @@ config SND_SOC_LPASS_PLAY
 	help
 	 To add support for early audio on APQ8064 board
 
+config ASUSTEK_HEADSET
+	tristate "ASUSTek Headset/headphone detection driver"
+	default n
+	help
+	 Provides support for detecting ASUSTek headset/headphone devices.
+
 endmenu

@@ -95,3 +95,5 @@ obj-$(CONFIG_SND_SOC_QDSP6V2) += snd-soc-qdsp6v2.o
 
 # for APQ 8064 sound card driver
 obj-y += msm-audio-spislave.o
+
+obj-$(CONFIG_ASUSTEK_HEADSET) += asustek_headset.o
