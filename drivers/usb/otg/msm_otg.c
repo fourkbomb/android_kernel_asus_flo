@@ -506,9 +506,15 @@ static DEVICE_ATTR(mode, S_IRUGO | S_IWUSR, get_msm_otg_mode, set_msm_otg_mode);
 static DEVICE_ATTR(keep_vbus, S_IRUGO | S_IWUSR,
 		get_msm_otg_keep_vbus, set_msm_otg_keep_vbus);
 
+static int old_chg_type = 0;
 static void asus_chg_set_chg_mode(enum usb_chg_type chg_src)
 {
 	int chg_type = chg_src;
+
+	if (old_chg_type == chg_type) {
+		printk(KERN_INFO "The USB charging type is same : return\n");
+		return;
+	}
 
 	switch (chg_type) {
 	case USB_INVALID_CHARGER:
@@ -542,6 +548,8 @@ static void asus_chg_set_chg_mode(enum usb_chg_type chg_src)
 		usb_cable_type_detect(CHARGER_TBD);
 		printk(KERN_INFO "The USB cable status = CHARGER_TBD\n");
 	}
+
+	old_chg_type = chg_type;
 }
 
 static int msm_hsusb_ldo_init(struct msm_otg *motg, int init)
