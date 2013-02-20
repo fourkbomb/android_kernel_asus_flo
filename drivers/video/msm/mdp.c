@@ -45,6 +45,7 @@
 #include "mipi_dsi.h"
 #include <mach/iommu_domains.h>
 #include <linux/iommu.h>
+#include <mach/board_asustek.h>
 
 
 uint32 mdp4_extn_disp;
@@ -3677,6 +3678,8 @@ static int mdp_bus_scale_register(void)
 static int bus_index = 1;
 int mdp_bus_scale_update_request(u64 ab_p0, u64 ib_p0, u64 ab_p1, u64 ib_p1)
 {
+	lcd_type type = asustek_get_lcd_type();
+
 	if (mdp_bus_scale_handle < 1) {
 		pr_err("%s invalid bus handle\n", __func__);
 		return -EINVAL;
@@ -3690,13 +3693,25 @@ int mdp_bus_scale_update_request(u64 ab_p0, u64 ib_p0, u64 ab_p1, u64 ib_p1)
 	bus_index++;
 	bus_index = (bus_index > 2) ? 1 : bus_index;
 
-	mdp_bus_usecases[bus_index].vectors[0].ab = min(ab_p0, mdp_max_bw);
+	if (type==0) //keep original ab, ib calculation for JDI panel
+		mdp_bus_usecases[bus_index].vectors[0].ab = min(ab_p0, mdp_max_bw);
+	else
+		mdp_bus_usecases[bus_index].vectors[0].ab = mdp_max_bw;
 	ib_p0 = max(ib_p0, ab_p0);
-	mdp_bus_usecases[bus_index].vectors[0].ib = min(ib_p0, mdp_max_bw);
+	if (type==0) //keep original ab, ib calculation for JDI panel
+		mdp_bus_usecases[bus_index].vectors[0].ib = min(ib_p0, mdp_max_bw);
+	else
+		mdp_bus_usecases[bus_index].vectors[0].ib = mdp_max_bw;
 
-	mdp_bus_usecases[bus_index].vectors[1].ab = min(ab_p1, mdp_max_bw);
+	if (type==0) //keep original ab, ib calculation for JDI panel
+		mdp_bus_usecases[bus_index].vectors[1].ab = min(ab_p1, mdp_max_bw);
+	else
+		mdp_bus_usecases[bus_index].vectors[1].ab = mdp_max_bw;
 	ib_p1 = max(ib_p1, ab_p1);
-	mdp_bus_usecases[bus_index].vectors[1].ib = min(ib_p1, mdp_max_bw);
+	if (type==0) //keep original ab, ib calculation for JDI panel
+		mdp_bus_usecases[bus_index].vectors[1].ib = min(ib_p1, mdp_max_bw);
+	else
+		mdp_bus_usecases[bus_index].vectors[1].ib = mdp_max_bw;
 
 	pr_debug("%s: handle=%d index=%d ab=%llu ib=%llu\n", __func__,
 		 (u32)mdp_bus_scale_handle, bus_index,
