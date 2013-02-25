@@ -163,6 +163,13 @@ struct msm_sensor_fn_t {
 	int32_t (*sensor_read_eeprom)(struct msm_sensor_ctrl_t *);
 	int32_t (*sensor_hdr_update)(struct msm_sensor_ctrl_t *,
 		 struct sensor_hdr_update_parm_t *);
+    int32_t (*sensor_set_effect)
+			(struct msm_sensor_ctrl_t *, int);
+	int32_t (*sensor_set_wb)
+			(struct msm_sensor_ctrl_t *, int);
+	int32_t (*sensor_set_ev)
+			(struct msm_sensor_ctrl_t *, int);
+
 };
 
 struct msm_sensor_csi_info {
