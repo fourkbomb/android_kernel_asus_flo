@@ -1092,9 +1092,9 @@ void msm_fb_set_backlight(struct msm_fb_data_type *mfd, __u32 bkl_lvl)
 	__u32 temp = bkl_lvl;
 
 	unset_bl_level = bkl_lvl;
-	if (mdp_fb_is_power_off(mfd) || !bl_updated) {
+
+	if (mdp_fb_is_power_off(mfd) || !bl_updated)
 		return;
-	}
 
 	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
 
@@ -2308,7 +2308,7 @@ static int msm_fb_pan_display_sub(struct fb_var_screeninfo *var,
 
 	up(&msm_fb_pan_sem);
 
-	if (unset_bl_level && !bl_updated)
+	if (!bl_updated)
 		schedule_delayed_work(&mfd->backlight_worker,
 				backlight_duration);
 
