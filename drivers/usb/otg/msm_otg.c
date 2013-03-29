@@ -1985,6 +1985,7 @@ static int msm_otg_set_host(struct usb_otg *otg, struct usb_bus *host)
 		return -ENODEV;
 	}
 
+/*
 	if (!machine_is_apq8064_mako()) {
 		if (!motg->pdata->vbus_power && host) {
 			motg->vbus_otg = devm_regulator_get(motg->phy.dev,
@@ -1995,7 +1996,7 @@ static int msm_otg_set_host(struct usb_otg *otg, struct usb_bus *host)
 			}
 		}
 	}
-
+*/
 	if (!host) {
 		if (otg->phy->state == OTG_STATE_A_HOST) {
 			pm_runtime_get_sync(otg->phy->dev);
