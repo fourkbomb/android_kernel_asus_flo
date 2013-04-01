@@ -1012,20 +1012,20 @@ struct msm_snapshot_pp_status {
 #define CFG_START_STREAM              44
 #define CFG_STOP_STREAM               45
 #define CFG_GET_CSI_PARAMS            46
-#define CFG_POWER_UP                  47
-#define CFG_POWER_DOWN                48
-#define CFG_WRITE_I2C_ARRAY           49
-#define CFG_READ_I2C_ARRAY            50
-#define CFG_PCLK_CHANGE               51
-#define CFG_CONFIG_VREG_ARRAY         52
-#define CFG_CONFIG_CLK_ARRAY          53
-#define CFG_GPIO_OP                   54
-#define CFG_SET_VISION_MODE           55
-#define CFG_SET_VISION_AE             56
-#define CFG_HDR_UPDATE                57
-#define CFG_ACTUAOTOR_REG_INIT        58
-#define CFG_MAX                       59
-
+#define CFG_GET_AF_CALIB              47
+#define CFG_POWER_UP                  48
+#define CFG_POWER_DOWN                49
+#define CFG_WRITE_I2C_ARRAY           50
+#define CFG_READ_I2C_ARRAY            51
+#define CFG_PCLK_CHANGE               52
+#define CFG_CONFIG_VREG_ARRAY         53
+#define CFG_CONFIG_CLK_ARRAY          54
+#define CFG_GPIO_OP                   55
+#define CFG_SET_VISION_MODE           56
+#define CFG_SET_VISION_AE             57
+#define CFG_HDR_UPDATE                58
+#define CFG_ACTUAOTOR_REG_INIT        59
+#define CFG_MAX                       60
 
 #define MOVE_NEAR	0
 #define MOVE_FAR	1
@@ -1565,6 +1565,7 @@ struct ispif_cfg_data {
 	} cfg;
 };
 
+<<<<<<< HEAD
 enum msm_camera_i2c_reg_addr_type {
 	MSM_CAMERA_I2C_BYTE_ADDR = 1,
 	MSM_CAMERA_I2C_WORD_ADDR,
@@ -1640,6 +1641,12 @@ struct msm_cam_clk_setting {
 	uint8_t enable;
 };
 
+struct msm_calib_af {
+	uint16_t macro_dac;
+	uint16_t inf_dac;
+	uint16_t start_dac;
+};
+
 struct sensor_cfg_data {
 	int cfgtype;
 	int mode;
@@ -1668,6 +1675,7 @@ struct sensor_cfg_data {
 		struct msm_eeprom_data_t eeprom_data;
 		struct csi_lane_params_t csi_lane_params;
 		struct sensor_hdr_update_parm_t hdr_update_parm;
+		struct msm_calib_af sensor_otp_afcalib;
 		/* QRD */
 		uint16_t antibanding;
 		uint8_t contrast;
@@ -1833,12 +1841,6 @@ struct msm_calib_wb {
 	uint16_t r_over_g;
 	uint16_t b_over_g;
 	uint16_t gr_over_gb;
-};
-
-struct msm_calib_af {
-	uint16_t macro_dac;
-	uint16_t inf_dac;
-	uint16_t start_dac;
 };
 
 struct msm_calib_lsc {
