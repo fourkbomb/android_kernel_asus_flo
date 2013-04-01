@@ -3047,6 +3047,7 @@ int mdp4_overlay_mdp_perf_req(struct msm_fb_data_type *mfd)
 	u64 ab_quota_total = 0, ib_quota_total = 0;
 	u64 ab_quota_port0 = 0, ib_quota_port0 = 0;
 	u64 ab_quota_port1 = 0, ib_quota_port1 = 0;
+	u64 ib_quota_min = 0;
 
 	if (!mfd) {
 		pr_err("%s: mfd is null!\n", __func__);
@@ -3088,6 +3089,12 @@ int mdp4_overlay_mdp_perf_req(struct msm_fb_data_type *mfd)
 				ab_quota_port0 += pipe->bw_ab_quota;
 				ib_quota_port0 += pipe->bw_ib_quota;
 			}
+		} else {
+			if (ib_quota_min == 0)
+				ib_quota_min = pipe->bw_ib_quota;
+			else
+				ib_quota_min = min(ib_quota_min,
+						   pipe->bw_ib_quota);
 		}
 		if (mfd->mdp_rev == MDP_REV_41) {
 			/*
@@ -3136,6 +3143,8 @@ int mdp4_overlay_mdp_perf_req(struct msm_fb_data_type *mfd)
 			}
 		}
 	}
+
+	ib_quota_total = max(ib_quota_total, ib_quota_min);
 
 	/* Flo specific change to increase IB request when we have >4 layers
 	 * but not all of them are covering the whole screen */
