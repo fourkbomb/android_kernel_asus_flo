@@ -41,6 +41,7 @@
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
 #include "wcnss_prealloc.h"
 #endif
+#include <asm/uaccess.h>
 
 #define DEVICE "wcnss_wlan"
 #define CTRL_DEVICE "wcnss_ctrl"
@@ -1577,29 +1578,35 @@ fail_gpio_res:
 
 static int wcnss_node_open(struct inode *inode, struct file *file)
 {
+	return 0;
+}
+
+static ssize_t wcnss_node_write(struct file *file,
+			const char __user *ubuf, size_t count, loff_t *ppos)
+{
 	struct platform_device *pdev;
-	int rc = 0;
+	char *buf;
 
-	if (!penv)
+	pr_info(DEVICE " %s: triggered by userspace\n", __func__);
+
+	pdev = penv->pdev;
+	if(count < 1 || count > SZ_4K)
+		return -EINVAL;
+
+	buf = kmalloc(count, GFP_KERNEL);
+	if(!buf)
+		return -ENOMEM;
+
+	if(copy_from_user(buf, ubuf, sizeof(buf))){
+		kfree(buf);
 		return -EFAULT;
-
-	if (!penv->triggered) {
-		pr_info(DEVICE " triggered by userspace\n");
-		pdev = penv->pdev;
-		rc = wcnss_trigger_config(pdev);
-		if (rc)
-			return -EFAULT;
 	}
 
-	mutex_lock(&penv->dev_lock);
-	penv->user_cal_rcvd = 0;
-	penv->user_cal_read = 0;
-	penv->user_cal_available = false;
-	penv->user_cal_data = NULL;
-	penv->device_opened = 1;
-	mutex_unlock(&penv->dev_lock);
+	if(buf[0] == '1')
+		wcnss_trigger_config(pdev);
 
-	return rc;
+	kfree(buf);
+	return count;
 }
 
 static ssize_t wcnss_wlan_read(struct file *fp, char __user
@@ -1715,8 +1722,7 @@ static struct notifier_block wnb = {
 static const struct file_operations wcnss_node_fops = {
 	.owner = THIS_MODULE,
 	.open = wcnss_node_open,
-	.read = wcnss_wlan_read,
-	.write = wcnss_wlan_write,
+	.write = wcnss_node_write,
 };
 
 static struct miscdevice wcnss_misc = {
