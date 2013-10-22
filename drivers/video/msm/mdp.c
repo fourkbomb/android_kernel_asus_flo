@@ -50,7 +50,7 @@
 #endif
 
 uint32 mdp4_extn_disp;
-
+u32 mdp_iommu_max_map_size;
 static struct clk *mdp_clk;
 static struct clk *mdp_pclk;
 static struct clk *mdp_lut_clk;
@@ -2450,6 +2450,9 @@ static int mdp_on(struct platform_device *pdev)
 		mdp_clk_ctrl(0);
 		mfd->cont_splash_done = 1;
 	}
+
+	if(mfd->index == 0)
+		mdp_iommu_max_map_size = mfd->max_map_size;
 
 	ret = panel_next_low_power_config(pdev, false);
 
