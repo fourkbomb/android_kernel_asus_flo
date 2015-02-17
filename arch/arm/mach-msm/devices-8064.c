@@ -808,6 +808,11 @@ struct platform_device apq_compr_dsp = {
 	.id     = -1,
 };
 
+struct platform_device apq_compress_dsp = {
+	.name   = "msm-compress-dsp",
+	.id     = -1,
+};
+
 struct platform_device apq_multi_ch_pcm = {
 	.name   = "msm-multi-ch-pcm-dsp",
 	.id     = -1,
