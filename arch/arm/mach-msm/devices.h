@@ -257,6 +257,8 @@ extern struct platform_device msm_8960_riva;
 extern struct platform_device msm_gss;
 
 extern struct platform_device apq_pcm;
+extern struct platform_device apq_pcm_dtmf;
+extern struct platform_device apq_dtmf_detection;
 extern struct platform_device apq_pcm_routing;
 extern struct platform_device apq_cpudai0;
 extern struct platform_device apq_cpudai1;
