@@ -44,6 +44,11 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
+#include <linux/fs.h>
+#include <linux/delay.h>
+
+extern void kernel_restart(char *cmd);
+
 /*
  * Background operations can take a long time, depending on the housekeeping
  * operations the card has to perform.
@@ -1468,6 +1473,40 @@ void mmc_set_driver_type(struct mmc_host *host, unsigned int drv_type)
 	mmc_host_clk_release(host);
 }
 
+void mmc_force_poweroff_notify(struct mmc_host *host)
+{
+	int err = 0;
+	unsigned int timeout;
+
+	mmc_claim_host(host);
+
+	if (mmc_card_is_sleep(host->card)) {
+		BUG_ON(!host->bus_ops->resume);
+		err = host->bus_ops->resume(host);
+	}
+
+	if (err) {
+		pr_err("failed to resume for force poweroff notify\n");
+		return;
+	}
+
+	timeout = host->card->ext_csd.generic_cmd6_time;
+
+	pr_info("sending poweroff notify\n");
+	err = mmc_switch(host->card, EXT_CSD_CMD_SET_NORMAL,
+		EXT_CSD_POWER_OFF_NOTIFICATION,
+		EXT_CSD_POWER_OFF_SHORT, timeout);
+	if (err && err != -EBADMSG) {
+		pr_err("Device failed to respond within %d poweroff time\n",
+			timeout);
+		return;
+	}
+
+	pr_info("poweroff notify sent\n");
+	mmc_release_host(host);
+	return;
+}
+
 /*
  * Apply power to the MMC stack.  This is a two-stage process.
  * First, we enable power to the card without the clock running.
@@ -1847,9 +1886,65 @@ static unsigned int mmc_erase_timeout(struct mmc_card *card,
 static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 			unsigned int to, unsigned int arg)
 {
+	struct mmc_request mrq = {NULL};
 	struct mmc_command cmd = {0};
 	unsigned int qty = 0;
 	int err;
+	struct mmc_data data = {0};
+	struct scatterlist sg;
+	void *data_buf;
+
+	/*
+	 * add dummy read for Hynix chip
+	 */
+	 if(card->cid.manfid == 0x90){
+		cmd.opcode = MMC_READ_SINGLE_BLOCK;
+		cmd.flags = MMC_RSP_SPI_R1 | MMC_RSP_R1 | MMC_CMD_ADTC;
+		cmd.arg = from;
+
+		data_buf = kmalloc(512, GFP_KERNEL);
+		if (data_buf == NULL)
+			return -ENOMEM;
+
+		mrq.cmd = &cmd;
+		mrq.data = &data;
+
+		data.blksz = 512;
+		data.blocks = 1;
+		data.flags = MMC_DATA_READ;
+		data.sg = &sg;
+		data.sg_len = 1;
+
+		sg_init_one(&sg, data_buf, 512);
+
+		mmc_set_data_timeout(&data, card);
+
+		mmc_wait_for_req(card->host, &mrq);
+		kfree(data_buf);
+
+		if (cmd.error)
+			return cmd.error;
+		if (data.error)
+			return data.error;
+
+		do {
+			memset(&cmd, 0, sizeof(struct mmc_command));
+			cmd.opcode = MMC_SEND_STATUS;
+			cmd.arg = card->rca << 16;
+			cmd.flags = MMC_RSP_R1 | MMC_CMD_AC;
+			/* Do not retry else we can't see errors */
+			err = mmc_wait_for_cmd(card->host, &cmd, 0);
+			if (err || (cmd.resp[0] & 0xFDF92000)) {
+				pr_err("error %d requesting status %#x\n",
+					err, cmd.resp[0]);
+				err = -EIO;
+				goto out;
+			}
+		} while (!(cmd.resp[0] & R1_READY_FOR_DATA) ||
+			R1_CURRENT_STATE(cmd.resp[0]) == R1_STATE_PRG);
+
+		memset(&cmd, 0, sizeof(struct mmc_command));
+	 }
 
 	/*
 	 * qty is used to calculate the erase timeout which depends on how many
@@ -2811,6 +2906,29 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 	return 0;
 }
 #endif
+
+
+/* force send poweroff notify to Kingston eMMC
+ * while long press power key before hw reset
+ */
+int force_poweroff_notify(struct notifier_block *notify_block,
+			unsigned long mode, void *unused)
+{
+	struct mmc_host *host = container_of(
+		notify_block, struct mmc_host, force_poweroff_notifier);
+
+	if (host->card == NULL)
+		return 0;
+	/* only for Kingston card */
+	if (mmc_card_mmc(host->card)
+		&& host->card->cid.manfid == 0x70) {
+		emergency_sync();
+		emergency_remount();
+		msleep(1000);
+		kernel_restart(NULL);
+	}
+	return 0;
+}
 
 #ifdef CONFIG_MMC_EMBEDDED_SDIO
 void mmc_set_embedded_sdio_data(struct mmc_host *host,

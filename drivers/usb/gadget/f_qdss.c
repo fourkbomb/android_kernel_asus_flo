@@ -725,4 +725,3 @@ static int qdss_setup(void)
 {
 	return 0;
 }
-

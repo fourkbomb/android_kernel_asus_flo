@@ -111,6 +111,7 @@ static DEFINE_SPINLOCK(ssr_lock);
 static unsigned int mdm_debug_mask;
 int vddmin_gpios_sent;
 static struct mdm_ops *mdm_ops;
+static struct mutex restart_lock;
 
 static void mdm_device_list_add(struct mdm_device *mdev)
 {
@@ -361,6 +362,32 @@ static void mdm_update_gpio_configs(struct mdm_device *mdev,
 	}
 }
 
+static int reset_mdm(struct mdm_modem_drv *mdm_drv)
+{
+	int value;
+
+	pr_info("%s++\n", __func__);
+
+	if (!mutex_trylock(&restart_lock))
+		return -EINVAL;
+
+	value = gpio_get_value(mdm_drv->mdm2ap_status_gpio);
+	if (value == 0 || atomic_read(&mdm_drv->mdm_ready) == 0) {
+		pr_err("%s: mdm_status = %d, mdm_ready = %d, return\n",
+			__func__, value, atomic_read(&mdm_drv->mdm_ready));
+		mutex_unlock(&restart_lock);
+		return -EINVAL;
+	}
+
+	atomic_set(&mdm_drv->mdm_ready, 0);
+	mutex_unlock(&restart_lock);
+
+	subsystem_restart(EXTERNAL_MODEM);
+
+	pr_info("%s--\n", __func__);
+	return 0;
+}
+
 static long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 				unsigned long arg)
 {
@@ -382,6 +409,10 @@ static long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 		pr_info("%s: Powering on mdm id %d\n",
 				__func__, mdev->mdm_data.device_id);
 		mdm_ops->power_on_mdm_cb(mdm_drv);
+		break;
+	case RESET_CHARM:
+		pr_info("RESET_CHARM");
+		ret = reset_mdm(mdm_drv);
 		break;
 	case CHECK_FOR_BOOT:
 		if (gpio_get_value(mdm_drv->mdm2ap_status_gpio) == 0)
@@ -569,11 +600,13 @@ static irqreturn_t mdm_status_change(int irq, void *dev_id)
 	struct mdm_modem_drv *mdm_drv;
 	struct mdm_device *mdev = (struct mdm_device *)dev_id;
 	int value;
+	unsigned int mdm2ap_pblrdy_irq;
 	if (!mdev)
 		return IRQ_HANDLED;
 
 	mdm_drv = &mdev->mdm_data;
 	value = gpio_get_value(mdm_drv->mdm2ap_status_gpio);
+	mdm2ap_pblrdy_irq = MSM_GPIO_TO_INT(mdm_drv->mdm2ap_pblrdy);
 
 	if ((mdm_debug_mask & MDM_DEBUG_MASK_SHDN_LOG) && (value == 0))
 		pr_info("%s: mdm2ap_status went low\n", __func__);
@@ -590,6 +623,7 @@ static irqreturn_t mdm_status_change(int irq, void *dev_id)
 		pr_info("%s: status = 1: mdm id %d is now ready\n",
 				__func__, mdev->mdm_data.device_id);
 		queue_work(mdev->mdm_queue, &mdev->mdm_status_work);
+		disable_irq(mdm2ap_pblrdy_irq);
 	}
 	return IRQ_HANDLED;
 }
@@ -613,6 +647,7 @@ static int mdm_subsys_shutdown(const struct subsys_desc *crashed_subsys)
 	struct mdm_device *mdev =
 	 container_of(crashed_subsys, struct mdm_device, mdm_subsys);
 	struct mdm_modem_drv *mdm_drv = &mdev->mdm_data;
+	unsigned int mdm2ap_pblrdy_irq = MSM_GPIO_TO_INT(mdm_drv->mdm2ap_pblrdy);
 
 	pr_debug("%s: ssr on modem id %d\n", __func__,
 			 mdev->mdm_data.device_id);
@@ -622,6 +657,8 @@ static int mdm_subsys_shutdown(const struct subsys_desc *crashed_subsys)
 
 	if (!mdm_drv->pdata->no_a2m_errfatal_on_ssr)
 		gpio_direction_output(mdm_drv->ap2mdm_errfatal_gpio, 1);
+
+	enable_irq(mdm2ap_pblrdy_irq);
 
 	if (mdm_drv->pdata->ramdump_delay_ms > 0) {
 		/* Wait for the external modem to complete
@@ -926,7 +963,8 @@ static int mdm_configure_ipc(struct mdm_device *mdev)
 			mdm_drv->usb_switch_gpio = -1;
 		}
 	}
-	gpio_direction_output(mdm_drv->ap2mdm_status_gpio, 1);
+
+	gpio_direction_output(mdm_drv->ap2mdm_status_gpio, 0);
 	gpio_direction_output(mdm_drv->ap2mdm_errfatal_gpio, 0);
 
 	if (GPIO_IS_VALID(mdm_drv->ap2mdm_wakeup_gpio))
@@ -1082,6 +1120,8 @@ static int __devinit mdm_modem_probe(struct platform_device *pdev)
 			mdm_ops->power_on_mdm_cb(&mdev->mdm_data);
 	}
 
+	mutex_init(&restart_lock);
+
 	return ret;
 
 init_err:
@@ -1100,6 +1140,8 @@ static int __devexit mdm_modem_remove(struct platform_device *pdev)
 	ret = misc_deregister(&mdev->misc_device);
 	mdm_device_list_remove(mdev);
 	kfree(mdev);
+	mutex_destroy(&restart_lock);
+
 	return ret;
 }
 
