@@ -2760,6 +2760,7 @@ static struct platform_device *cdp_devices[] __initdata = {
 	&msm_rotator_device,
 #endif
 	&msm8064_pc_cntr,
+	&msm8064_cpu_slp_status,
 };
 
 static struct platform_device
@@ -3438,7 +3439,7 @@ static void __init apq8064_common_init(void)
 
 	//add touch
 	touch_init();
-	
+
 	if (machine_is_apq8064_flo() || machine_is_apq8064_deb())
 		nfc_init();
 #ifdef CONFIG_SENSORS_CAP1106
@@ -3584,4 +3585,3 @@ MACHINE_START(APQ8064_DEB, "QCT APQ8064 DEB")
 	.init_very_early = apq8064_early_reserve,
 	.restart = msm_restart,
 MACHINE_END
-
