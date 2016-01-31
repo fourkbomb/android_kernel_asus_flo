@@ -1703,6 +1703,7 @@ static struct platform_device *msm_snd_device;
 static int __init msm_audio_init(void)
 {
 	int ret;
+#if 0
 	if (!(machine_is_apq8064_adp_2() || machine_is_apq8064_adp2_es2())) {
 		pr_err("%s: Not APQ8064-auto machine type\n", __func__);
 		ret = -ENODEV;
@@ -1715,6 +1716,7 @@ static int __init msm_audio_init(void)
 	} else {
 		pr_info("%s: apq8064-auto platform\n", __func__);
 	}
+#endif
 
 	msm_snd_device = platform_device_alloc("soc-audio", 0);
 	if (!msm_snd_device) {
@@ -1749,10 +1751,12 @@ module_init(msm_audio_init);
 
 static void __exit msm_audio_exit(void)
 {
+#if 0
 	if (!machine_is_apq8064_adp_2()) {
 		pr_err("%s: Not APQ8064-auto machine type\n", __func__);
 		return ;
 	}
+#endif
 
 	pr_info("%s: apq8064-auto exit\n", __func__);
 	platform_device_unregister(msm_snd_device);

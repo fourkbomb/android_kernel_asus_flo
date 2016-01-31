@@ -2247,8 +2247,11 @@ static int __init msm_audio_init(void)
 		(socinfo_get_id() == 130) ||
 		((machine_is_apq8064_mtp() || machine_is_apq8064_flo() ||
 		machine_is_apq8064_deb()) &&
-		(SOCINFO_VERSION_MINOR(version) == 1)) ||
-		machine_is_apq8064_adp_2()) {
+		(SOCINFO_VERSION_MINOR(version) == 1))
+#if 0
+		|| machine_is_apq8064_adp_2()
+#endif
+		) {
 		pr_info("%s: Not APQ8064 machine type\n", __func__);
 		return -ENODEV;
 	}
@@ -2293,8 +2296,11 @@ static void __exit msm_audio_exit(void)
 	if (!soc_class_is_apq8064() ||
 		(socinfo_get_id() == 130) ||
 		(machine_is_apq8064_mtp() &&
-		(SOCINFO_VERSION_MINOR(version) == 1)) ||
-		machine_is_apq8064_adp_2()) {
+		(SOCINFO_VERSION_MINOR(version) == 1))
+#if 0
+		|| machine_is_apq8064_adp_2()
+#endif
+		) {
 		return;
 	}
 	platform_device_unregister(msm_snd_device);
