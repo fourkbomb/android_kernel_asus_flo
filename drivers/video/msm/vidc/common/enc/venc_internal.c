@@ -1648,10 +1648,10 @@ u32 vid_enc_set_buffer(struct video_client_ctx *client_ctx,
 	}
 
 	/*
-	* Invalidate output buffers explcitly once, during registration
-	* This ensures any pending CPU writes (eg. memset 0 after allocation)
-        * are not flushed _after_the hardware has written bitstream.
-        * rare bug, but can happen
+	* Flush output buffers explcitly once, during registration. This ensures
+	* any pending CPU writes (if cleared after allocation) are
+	* committed right away, or else this may get flushed _after_
+	* the hardware has written bitstream. rare bug, but can happen !
 	*/
 	if (buffer == VEN_BUFFER_TYPE_OUTPUT) {
 		user_vaddr = (unsigned long)buffer_info->pbuffer;
@@ -1668,12 +1668,11 @@ u32 vid_enc_set_buffer(struct video_client_ctx *client_ctx,
 				buffer_info->fd, kernel_vaddr, buffer_index,
 				&buff_handle);
 
-		if (ion_flag == ION_FLAG_CACHED && buff_handle &&
-				kernel_vaddr) {
+		if (ion_flag == ION_FLAG_CACHED && buff_handle) {
 			msm_ion_do_cache_op(
 					client_ctx->user_ion_client,
 					buff_handle,
-					(unsigned long *) kernel_vaddr,
+					NULL,
 					(unsigned long) length,
 					ION_IOC_INV_CACHES);
 		}
